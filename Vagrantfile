@@ -80,7 +80,7 @@ apt-get install -y ntp
 systemctl enable ntp
 systemctl start ntp
 apt-get install -y docker.io
-if { curl -s https://packages.cloud.google.com/apt/dists/kubernetes-xenial/main/binary-amd64/Packages |	awk /Version/'{print $2}'; } \
+if { curl -s https://packages.cloud.google.com/apt/dists/kubernetes-xenial/main/binary-amd64/Packages |	awk /Version/'{print $2}'; } | \
 		 grep -q "#{$K8S_VERSION}"
 then
 		apt-get install -y kubelet=#{$K8S_VERSION} kubeadm=#{$K8S_VERSION} kubectl=#{$K8S_VERSION} kubernetes-cni
