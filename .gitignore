@@ -22,6 +22,8 @@ id_*
 
 # Just ignore everything, except Vagrantfile..
 *
+!.gitignore
+!README.md
 !Vagrantfile
 !k8s-minimal-ingress-resource.yaml
 !k8s-single-service-ingress.yaml

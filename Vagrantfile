@@ -51,7 +51,7 @@ $VM_DNSPROXY_NAT = 1            # [0/1] enable nat dns proxy in vbox
 if not ENV['K8S_VERSION'].nil?
 	$K8S_VERSION=ENV['K8S_VERSION']
 end
-$K8S_VERSION = "x"
+# DEBUG: # $K8S_VERSION = "0.0-0"
 
 # same as 'kubeadm token generate'
 def get_cluster_token()
@@ -121,8 +121,9 @@ kadm_init_args+=" --apiserver-advertise-address=#{ip_from_num(0)}"
 # [ #{$K8S_COREDNS} = "1" ] && kadm_init_args+=" --feature-gates CoreDNS=true"
 
 [ #{$K8S_NETWORKING} = "flannel" ] &&	kadm_init_args+=" --pod-network-cidr=10.244.0.0/16"
-[ #{$K8S_NETWORKING} = "canel" ] &&	kadm_init_args+=" --pod-network-cidr=10.244.0.0/16"
+[ #{$K8S_NETWORKING} = "canal" ] &&	kadm_init_args+=" --pod-network-cidr=10.244.0.0/16"
 [ #{$K8S_NETWORKING} = "calico" ] && kadm_init_args+=" --pod-network-cidr=192.168.0.0/16"
+
 kubeadm init --token=#{cluster_token} $kadm_init_args && \
 { test -d /root/.kube || mkdir /root/.kube; } && \
 { test -s $K8S_ADMIN_CONF && cp #{$K8S_ADMIN_CONF} /root/.kube/config || \
@@ -172,7 +173,7 @@ if [ #{$K8S_METRICS_SERVER} = "1" ]; then
 	done
 fi
 [ -s #{$K8S_ADMIN_CONF} ] && { cp #{$K8S_ADMIN_CONF} /vagrant || echo "ERROR: #{$K8S_ADMIN_CONF} is missing"; }
-kubectl create -f https://k8s.io/examples/admin/dns/busybox.yaml
+#kubectl create -f https://k8s.io/examples/admin/dns/busybox.yaml
 # echo "Dashboard:"
 # echo "http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/pod/default/default-http-backend-jv7jt?namespace=default"
 SCRIPT
