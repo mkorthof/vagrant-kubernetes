@@ -3,7 +3,7 @@ Vagrantfile to setup a Kubernetes cluster consisting of 1 master and 2 nodes as 
 
 ### Updated version:
 - Forked from original: https://github.com/grahamdaley/vagrant-kubernetes
-- Supports Kubernetes: **1.13** (includes option to change version)
+- Supports Kubernetes: **1.14** (includes option to change version)
 - Addons/plugins: network weave|flannel|calico|canal, dashboard, metrics, nginx
 
 > Kubernetes (commonly referred to as "k8s") is an open source container cluster manager originally designed by Google and 
