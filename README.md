@@ -70,6 +70,7 @@ You should now have a fully working Kubernetes cluster running on your local mac
 
 ## Changes
 
+-	[2019-04-20] v1.14 updates, ubuntu/bionic box, runtime options
 - [2018-12-04] v1.13 fixes/workarounds
 - [2018-11-10] v1.12 fixes/workarounds, hostfile, addon options
 
@@ -77,4 +78,3 @@ You should now have a fully working Kubernetes cluster running on your local mac
 
 - Support multiple concurrent versions
 - Ingress/nginx
-- Show/save Dashboard token
