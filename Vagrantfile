@@ -17,26 +17,34 @@ require 'securerandom'
 # - Updated version: https://github.com/mkorthof/vagrant-kubernetes (v1.13)
 #
 # Changes: 
+#		[2019-04-20] v1.14 updates, ubuntu/bionic box, runtime options
+#		[2019-01-25] fixed busybox deploy, added vg_box and dist os options
 #		[2018-12-04] v1.13 fixes/workarounds
 #		[2018-11-10] v1.12 fixes/workarounds, hostfile, addon options
 #
 # TODO:
 # - support multiple concurrent versions
 # - multi master support
-# - check if metrics-server needs "fixes"
-# - add nginx as default ingress
-# - dashboard token
 #						
 
+$VG_BOX	=	"ubuntu/bionic64"			# vagrant box
 $NR_NODES = 2                   # number of worker nodes
 $TOKEN_FILE = ".cluster_token"  # token for kubeadm init
 $IP_PREFIX = "192.168.33"       # [ip] vm's/nodes get <prefix>.{10+i}
-$K8S_VERSION="1.13.0-00"        # kubernetes version (apt packages)
-$K8S_NETWORKING = "canal"       # [weave|flannel|calico|canal] network
+$K8S_OS_DIST = "xenial"					# kubernetes os dist (apt packages)
+$K8S_VERSION = "1.14.0-00"      # kubernetes version (apt packages)
+$K8S_RUNTIME = "docker-ce"			# [docker.io|docker-ce] container runntime
+$DOCKER_VERSION = "18.06.2~ce~3-0~ubuntu"
+$K8S_NETWORKING = "calico"      # [weave|flannel|calico|canal] network
+$K8S_NETWORKING_RBAC = 0				# [0/1]
 $K8S_COREDNS = 1                # [0/1] ( ignore: default since 1.11 )
 $K8S_DASHBOARD = 0              # [0/1] dashboard
 $K8S_METRICS_SERVER = 0         # [0/1] metics-server
 $K8S_NGINX = 0                  # [0/1] nginx ingress
+$K8S_BUSYBOX = 1                # [0/1] busybox example pod in default namespace
+
+# Enable this fix if you're having issues with metrics-server
+$K8S_METRICS_SVR_FIX = 0        # [0/1] add insecure-tls and internalips args
 
 # Normally these are not needed, seems only weave might need them
 $K8S_KPOXY_FIX = 0              # [0/1] fix kube-proxy
@@ -45,13 +53,21 @@ $K8S_API_SROUTE = 0             # [0/1] static route api
 
 $K8S_ADMIN_CONF = "/etc/kubernetes/admin.conf"
 
-# Enable if you're having DNS issues
-$VM_DNSPROXY_NAT = 1            # [0/1] enable nat dns proxy in vbox
+$K8S_DASH_TOKEN = "/vagrant/dashboard-token.txt"
+
+# Enable if you're having VirtualBox DNS issues
+$VB_DNSPROXY_NAT = 1            # [0/1] enable nat dns proxy in vbox
+
+### END OF CONFIG ###
+
+$K8S_DEBUG = 0
 
 if not ENV['K8S_VERSION'].nil?
 	$K8S_VERSION=ENV['K8S_VERSION']
 end
-# DEBUG: # $K8S_VERSION = "0.0-0"
+if ($K8S_DEBUG == 1) then
+	$K8S_VERSION = "0.0-0"
+end
 
 # same as 'kubeadm token generate'
 def get_cluster_token()
@@ -66,6 +82,10 @@ end
 
 def common_setup_script()
   script = <<SCRIPT
+if [ #{$K8S_DEBUG} -eq 1 ]; then
+	echo "DEBUG: common_setup_script K8S_RUNTIME=#{$K8S_RUNTIME} DOCKER_VERSION={$DOCKER_VERSION}"
+  echo "DEBUG: common_setup_script K8S_OS_DIST=#{$K8S_OS_DIST} K8S_VERSION=#{$K8S_VERSION}"; exit
+fi
 export LANGUAGE=en_US.UTF-8
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
@@ -73,27 +93,56 @@ export DEBIAN_FRONTEND=noninteractive
 locale-gen en_US.UTF-8 || dpkg-reconfigure locales
 curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 cat <<EOF1 > /etc/apt/sources.list.d/kubernetes.list
-deb http://apt.kubernetes.io/ kubernetes-xenial main
+deb http://apt.kubernetes.io/ kubernetes-#{$K8S_OS_DIST} main
 EOF1
 apt-get update
 apt-get install -y ntp
 systemctl enable ntp
 systemctl start ntp
-apt-get install -y docker.io
-if { curl -s https://packages.cloud.google.com/apt/dists/kubernetes-xenial/main/binary-amd64/Packages |	awk /Version/'{print $2}'; } | \
-		 grep -q "#{$K8S_VERSION}"
-then
-		apt-get install -y kubelet=#{$K8S_VERSION} kubeadm=#{$K8S_VERSION} kubectl=#{$K8S_VERSION} kubernetes-cni
-else 
-		echo "ERROR: #{$K8S_VERSION} is incorrect"
-		exit 1
-fi
-cat <<EOF2 > /etc/docker/daemon.json
+if [ #{$K8S_RUNTIME} = "docker.io" ]; then
+	apt-get install -y docker.io
+	cat <<EOF2 > /etc/docker/daemon.json
 {
   "insecure-registries": ["#{$IP_PREFIX}.1:5000"]
+  "exec-opts": ["native.cgroupdriver=systemd"],
 }
 EOF2
-systemctl enable docker && systemctl start docker
+	systemctl enable docker && systemctl start docker
+elif [ #{$K8S_RUNTIME} = "docker-ce" ]; then
+	apt-get update && apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+	add-apt-repository \
+	  "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+	  $(lsb_release -cs) \
+	  stable"
+	apt-get update && apt-get install -y docker-ce=#{$DOCKER_VERSION}
+	cat <<EOF3 > /etc/docker/daemon.json
+{
+  "insecure-registries": ["#{$IP_PREFIX}.1:5000"],
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2"
+}
+EOF3
+	mkdir -p /etc/systemd/system/docker.service.d
+	systemctl daemon-reload
+	systemctl restart docker
+fi
+if { curl -s https://packages.cloud.google.com/apt/dists/kubernetes-#{$K8S_OS_DIST}/main/binary-amd64/Packages | awk /Version/'{print $2}'; } | \
+	grep -q "^#{$K8S_VERSION}"
+then
+	v="#{$K8S_VERSION}"
+	if ! echo "#{$K8S_VERSION}" | grep -Eq -- "\-00$"; then
+		v="${v}-00"
+	fi
+	apt-get install -y kubelet=${v} kubeadm=${v} kubectl=${v} kubernetes-cni
+else 
+	echo "ERROR: #{$K8S_VERSION} is incorrect"
+	exit 1
+fi
 systemctl enable kubelet && systemctl start kubelet
 unset DEBIAN_FRONTEND
 SCRIPT
@@ -101,6 +150,9 @@ end
 
 def master_setup_script(cluster_token)
   script = <<SCRIPT
+if [ #{$K8S_DEBUG} -eq 1 ]; then
+  echo "DEBUG: master_setup_script NODES=#{$NODES}"; exit
+fi
 ##curl -s -O http://stedolan.github.io/jq/download/linux64/jq && chmod +x ./jq && mv jq /usr/local/bin
 export DEBIAN_FRONTEND=noninteractive
 apt-get install -y jq
@@ -130,13 +182,17 @@ kubeadm init --token=#{cluster_token} $kadm_init_args && \
 	echo "ERROR: #{$K8S_ADMIN_CONF} is missing"; }
 
 if [ #{$K8S_NETWORKING} = "flannel" ]; then
-	kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/bc79dd1505b0c8681ece4de4c0d86c5cd2643275/Documentation/kube-flannel.yml
+	kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 elif [ #{$K8S_NETWORKING} = "calico" ]; then
-	kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
-	kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+	kubectl apply -f https://docs.projectcalico.org/v3.6/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+	if [ #{$K8S_NETWORKING_RBAC} ]; then
+ 		kubectl apply -f https://docs.projectcalico.org/master/manifests/rbac-kdd-calico.yaml
+	fi
 elif [ #{$K8S_NETWORKING} = "canal" ]; then
-	kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/canal/rbac.yaml
-	kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/canal/canal.yaml
+	kubectl apply -f https://docs.projectcalico.org/v3.6/getting-started/kubernetes/installation/hosted/canal/canal.yaml
+	if [ #{$K8S_NETWORKING_RBAC} ]; then
+		kubectl apply -f https://docs.projectcalico.org/v3.6/manifests/rbac-kdd-flannel.yaml
+	fi
 elif [ #{$K8S_NETWORKING} = "weave" ]; then
 	### Fix for kube-proxy, k8s version 1.[4-6]
 	if [ #{$K8S_KPOXY_FIX_LEGACY} ]; then
@@ -163,20 +219,35 @@ if [ #{$K8S_NGINX} = "1" ]; then
 	#https://raw.githubusercontent.com/kubernetes/contrib/master/ingress/controllers/nginx/examples/default-backend.yaml
 fi
 if [ #{$K8S_DASHBOARD} = "1" ]; then
-	kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
+	kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/master/aio/deploy/recommended/kubernetes-dashboard.yaml
+	kubectl -n kube-system describe secrets kubernetes-dashboard | grep token: > #{$K8S_DASH_TOKEN}
 fi
 if [ #{$K8S_METRICS_SERVER} = "1" ]; then
-	for f in aggregated-metrics-reader auth-delegator auth-reader metrics-apiservice \
-	metrics-server-deployment metrics-server-service resource-reader
-	do
-			kubectl create -f https://raw.githubusercontent.com/kubernetes-incubator/metrics-server/master/deploy/1.8%2B/${f}.yaml
-	done
+  for f in aggregated-metrics-reader auth-delegator auth-reader metrics-apiservice \
+           metrics-server-deployment metrics-server-service resource-reader; do
+    if [ #{$K8S_METRICS_SVR_FIX} = "1" ]; then
+      if [ "$f" = "metrics-server-deployment" ]; then
+        cmd="command: [ \"\/metrics-server\" ]"
+        args="args: [ \"--kubelet-insecure-tls\", \"--kubelet-preferred-address-types=InternalIP\" ]"
+        sp="\n        "
+        curl -s -o - https://raw.githubusercontent.com/kubernetes-incubator/metrics-server/master/deploy/1.8%2B/${f}.yaml | \
+        sed '/^\s*containers:/,/\s*imagePullPolicy/{N;s/\(imagePullPolicy: Always\)$/\1'"${sp}${cmd}${sp}${args}"'/}' | \
+        kubectl apply -f -
+      fi
+    fi  
+    kubectl create -f https://raw.githubusercontent.com/kubernetes-incubator/metrics-server/master/deploy/1.8%2B/${f}.yaml
+  done
+fi
+if [ #{$K8S_BUSYBOX} = "1" ]; then
+  echo "Creating busybox pod example..."
+	# Added 30 sec sleep because 'default' namespace might not exist yet
+  { sleep 30 && kubectl create -f https://k8s.io/examples/admin/dns/busybox.yaml; } &
 fi
 [ -s #{$K8S_ADMIN_CONF} ] && { cp #{$K8S_ADMIN_CONF} /vagrant || echo "ERROR: #{$K8S_ADMIN_CONF} is missing"; }
-#kubectl create -f https://k8s.io/examples/admin/dns/busybox.yaml
-# echo "Dashboard:"
-# echo "http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#!/pod/default/default-http-backend-jv7jt?namespace=default"
 SCRIPT
+# puts "Dashboard:"
+# puts "first start: 'kubectl proxy --kubeconfig admin.conf', then goto"
+# puts "http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/"
 end
 
 def node_setup_script(host_no, cluster_token)
@@ -210,7 +281,7 @@ Vagrant.configure("2") do |config|
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://atlas.hashicorp.com/search.
-  config.vm.box = "ubuntu/xenial64"
+  config.vm.box = $VG_BOX
   config.vm.box_check_update = true
 
   # Provider-specific configuration so you can fine-tune various
@@ -222,7 +293,7 @@ Vagrant.configure("2") do |config|
     vb.memory = "2048"
 		
 		# https://www.virtualbox.org/manual/ch09.html#nat_host_resolver_proxy
-		if ($VM_DNSPROXY_NAT == 1) then
+		if $VB_DNSPROXY_NAT == 1 then
 			vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
 		end
   end
