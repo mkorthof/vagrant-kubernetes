@@ -14,7 +14,7 @@ require 'securerandom'
 #         - shared dir gets mounted as /vagrant (for token file, admin.conf)
 #
 # - Original source: https://github.com/grahamdaley/vagrant-kubernetes (v1.6?)
-# - Updated version: https://github.com/mkorthof/vagrant-kubernetes (v1.13)
+# - Updated version: https://github.com/mkorthof/vagrant-kubernetes (v1.14)
 #
 # Changes: 
 #		[2019-04-20] v1.14 updates, ubuntu/bionic box, runtime options

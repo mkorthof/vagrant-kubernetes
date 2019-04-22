@@ -1,19 +1,35 @@
 # vagrant-kubernetes
+
 Vagrantfile to setup a Kubernetes cluster consisting of 1 master and 2 nodes as VMs on your local machine
 
+---
+
 ### Updated version:
+
 - Forked from original: https://github.com/grahamdaley/vagrant-kubernetes
 - Supports Kubernetes: **1.14** (includes option to change version)
 - Addons/plugins: network weave|flannel|calico|canal, dashboard, metrics, nginx
 
-> Kubernetes (commonly referred to as "k8s") is an open source container cluster manager originally designed by Google and 
-> donated to the Cloud Native Computing Foundation. It aims to provide a platform for automating deployment, scaling, and 
-> operations of application containers across clusters of hosts. It usually works with the Docker container tool and 
-> coordinates between a wide cluster of hosts running Docker – [from Wikipedia](https://en.wikipedia.org/wiki/Kubernetes).
+Also see [Changes](#Changes) and [Todo](#Todo) below and comments inside [Vagrantfile](Vagrantfile)
+
+---
+
+### Original README:
+
+#### Kubernetes:
+
+> _Kubernetes (commonly referred to as "k8s") is an open source container cluster manager originally designed by Google and
+> donated to the Cloud Native Computing Foundation. It aims to provide a platform for automating deployment, scaling, and
+> operations of application containers across clusters of hosts. It usually works with the Docker container tool and
+> coordinates between a wide cluster of hosts running Docker_ – [from Wikipedia](https://en.wikipedia.org/wiki/Kubernetes).
+
+#### Minikube:
 
 Kubernetes includes a command line tool, Minikube, which is a tool that makes it easy to run Kubernetes locally. Minikube runs a single-node Kubernetes 'cluster' inside a VM on your local computer. It is focused on users looking to try out Kubernetes or develop with it day-to-day. While Minikube is easy to use and will help you get going quickly, it is restricted to just one node, and so won't allow you to really test your application in a multi-node environment.
 
-This Vagrant script carries out all of the major steps required to setup a Kubernetes cluster on your local machine, running Ubuntu Linux, using the free VirtualBox application. This cluster may be setup on any Mac or PC supported by VirtualBox and Vagrant.
+#### Vagrant:
+
+This Vagrant script carries out all of the major steps required to setup a Kubernetes cluster on your local machine, running Ubuntu Linux, using the free VirtualBox application. This cluster may be setup on any Mac or Windows PC supported by VirtualBox and Vagrant.
 
 This cluster enables application containers to be tested in a multi-node environment, to see how well they respond to the challenges of scaling. It can also help identify any issues related to concurrency, even while in the development environment, so they can be resolved as early as possible in the development process.
 
@@ -25,7 +41,7 @@ The cluster consists of Kubernetes 3 hosts:
 ## Download
 
 * __[VirtualBox](https://www.virtualbox.org/)__ 
-  - Install this to run virtual machines on your local Mac or PC.
+  - Install this to run virtual machines on your local Mac or Windows PC.
 
 * __[Vagrant](https://www.vagrantup.com/)__ 
   - Install this to allow quick and easy setup of the virtual machines we will be using in this article.
@@ -59,7 +75,7 @@ The cluster consists of Kubernetes 3 hosts:
   $ export KUBECONFIG="$KUBECONFIG:`pwd`/admin.conf"
   ```
 
-4. Optionally, proxy the admin console to your local Mac/PC
+4. Optionally, proxy the admin console to your local Mac/Windows PC
   ```
   $ kubectl proxy
   ```
@@ -70,11 +86,12 @@ You should now have a fully working Kubernetes cluster running on your local mac
 
 ## Changes
 
--	[2019-04-20] v1.14 updates, ubuntu/bionic box, runtime options
+- [2019-04-20] v1.14 updates, ubuntu/bionic box, runtime options
+- [2019-01-25] fixed busybox deploy, added vg_box and dist os options
 - [2018-12-04] v1.13 fixes/workarounds
 - [2018-11-10] v1.12 fixes/workarounds, hostfile, addon options
 
-## Todo
+## TODO
 
-- Support multiple concurrent versions
-- Ingress/nginx
+- support multiple concurrent versions
+- multi master support

@@ -1,12 +1,17 @@
 # Ignore all directories, and all sub-directories, and it's contents:
 */*
 
+# Ignore files in all subdirectories:
 # /**/*
+
+# Ignore all sub directories:
 # */
 
-.vagrant/*
+.vagrant/
+tools/
 
 .cluster_token
+dashboard-token.txt
 *.conf
 *.log
 *.html
@@ -20,7 +25,7 @@
 *.iso
 id_*
 
-# Just ignore everything, except Vagrantfile..
+# Just ignore everything, except Vagrantfile, README.md etc:
 *
 !.gitignore
 !README.md
