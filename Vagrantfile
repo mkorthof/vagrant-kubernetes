@@ -18,7 +18,7 @@ require 'securerandom'
 # - Updated version: https://github.com/mkorthof/vagrant-kubernetes (v1.15)
 #
 # Changes:
-#   [2019-06-23] v1.15 removed canal, updated addon deployments, improved kubevg
+#   [2019-06-23] v1.15 removed canal, updated addon deployments, improved kubevg.bat
 #   [2019-05-23] added support for multiple concurrent k8s versions, multimaster prep, ingress
 #   [2019-04-20] v1.14 updates, ubuntu/bionic box, runtime options
 #   [2019-01-25] fixed busybox deploy, added vg_box and dist os options
