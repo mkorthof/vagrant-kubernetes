@@ -17,6 +17,7 @@ dashboard-token.txt
 *.html
 *.bak
 *.orig
+*.yml
 *.yaml
 *.csr
 *.crt
