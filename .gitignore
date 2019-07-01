@@ -24,12 +24,19 @@ dashboard-token.txt
 *.txt
 *.iso
 id_*
+TODO
+
+# Don't ignore tools dir
+##!tools/
+##!tools/*
 
 # Just ignore everything, except Vagrantfile, README.md etc:
 *
 !.gitignore
 !README.md
 !Vagrantfile
-!k8s-minimal-ingress-resource.yaml
-!k8s-single-service-ingress.yaml
 !kubevg.bat
+
+## removed, added to Vagrantfile:
+#!k8s-minimal-ingress-resource.yaml
+#!k8s-single-service-ingress.yaml

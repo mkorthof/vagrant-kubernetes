@@ -7,8 +7,9 @@ Vagrantfile to setup a Kubernetes cluster consisting of 1 master and 2 nodes as 
 ### Updated version:
 
 - Forked from original: https://github.com/grahamdaley/vagrant-kubernetes
-- Supports Kubernetes: **1.14** (includes option to change version)
+- Supports Kubernetes: **1.15** (includes option to change version)
 - Addons/plugins: network weave|flannel|calico|canal, dashboard, metrics, nginx
+- Support multiple concurrent versions using kubevb.bat
 
 Also see [Changes](#Changes) and [Todo](#Todo) below and comments inside [Vagrantfile](Vagrantfile)
 
@@ -51,7 +52,7 @@ The cluster consists of Kubernetes 3 hosts:
 
 ## Configuring and Running the Virtual Machines
 
-1. Download the [Vagrantfile](https://raw.githubusercontent.com/mkorthof/vagrant-kubernetes/master/Vagrantfile) and save it in a new, empty folder on your Mac or PC.
+1. Download the [Vagrantfile](https://raw.githubusercontent.com/mkorthof/vagrant-kubernetes/master/Vagrantfile) and save it in a new, empty folder on your Mac or Windows PC.
 
 2. Start up the VMs in one go
   ```sh
@@ -71,21 +72,47 @@ The cluster consists of Kubernetes 3 hosts:
   Once the box image has been downloaded, numerous additional packages will be downloaded and installed automatically, including those required for Docker and Kubernetes. This process will take approximately 15 minutes to complete.
 
 3. Get the configuration for our new Kubernetes cluster so we can access it directly from our local machine
-  ```
-  $ export KUBECONFIG="$KUBECONFIG:`pwd`/admin.conf"
-  ```
+  * Mac: `$ export KUBECONFIG="$KUBECONFIG:`pwd`/admin.conf"`
+  * Windows: `SET "KUBECONFIG=%KUBECONFIG%;%CD%\admin.conf"`
 
 4. Optionally, proxy the admin console to your local Mac/Windows PC
-  ```
-  $ kubectl proxy
-  ```
+  * `$ kubectl proxy`
 
-Leaving the above command running, access the [Kubernetes Admin Console](http://localhost:8001/ui) in your web browser.
+You can also use `--kubeconfig` instead of the "KUBECONFIG" env var:
+```
+C:\vagrant-kubernetes\kubectl --kubeconfig admin.conf proxy
+```
+
+Leaving the above command running, access the [Kubernetes Admin Console](http://localhost:8001/ui) in your web browser. This requires setting `$K8S_DASHBOARD = 1` in Vagrantfile first, before running `vagrant up`.
 
 You should now have a fully working Kubernetes cluster running on your local machine, on to which you can deploy containers using either the admin console or the kubectl command line tool.
 
+## Multiple versions
+
+Use multiple concurrent k8s versions.
+
+``` bash
+This wrapper will chdir to "k8s-version" subdir first before
+running Vagrant, allowing multiple Kubernetes versions to co-exist.
+
+SYNTAX:  ".\kubevg.bat [--help|--version] | [--create] <k8s-version> [vagrant|kubectl <command>]"
+
+         [--create] <k8s-version>] create new version subdir and run "vagrant up"
+         [--help] show these help instructions
+         [--version] list available Kubernetes Ubuntu package versions
+
+VAGRANT: ".\kubevg.bat <k8s-version> vagrant <commmand>"
+KUBECTL: ".\kubevg.bat <k8s-version> kubectl <commmand>"
+
+EXAMPLE: ".\kubevg.bat --create 1.13.0"
+         ".\kubevg.bat 1.13.0 vagrant ssh host0"
+         ".\kubevg.bat 1.13.0 kubectl proxy"
+```
+
 ## Changes
 
+- [2019-06-23] v1.15 removed canal, updated addon deployments, improved kubevg
+- [2019-05-23] added support for multiple concurrent k8s versions, multimaster prep, ingress
 - [2019-04-20] v1.14 updates, ubuntu/bionic box, runtime options
 - [2019-01-25] fixed busybox deploy, added vg_box and dist os options
 - [2018-12-04] v1.13 fixes/workarounds
@@ -93,5 +120,9 @@ You should now have a fully working Kubernetes cluster running on your local mac
 
 ## TODO
 
-- support multiple concurrent versions
-- multi master support
+- check if vb natproxy fix is still needed
+- fix return from sleep vbox by removing/readding NAT network:
+  - `VBoxManage controlvm "1234_host0_12345" nic1 null`
+  - `VBoxManage controlvm "1234_host0_12345" nic1 nat`
+- add metallb/nginx as default lb/ingress and add hello-world example
+- finish multi master support
