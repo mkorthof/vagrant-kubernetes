@@ -109,6 +109,16 @@ EXAMPLE: ".\kubevg.bat --create 1.13.0"
          ".\kubevg.bat 1.13.0 kubectl proxy"
 ```
 
+## Dashboard
+
+If you enable the Dashboard in the Vagrantfile by setting `$K8S_DASHBOARD = 1`.
+Two files will be created:
+
+- "dashboard-token.txt" containing a bearer token to login
+- "dashboard.html" which auto redirects to the Dashboard URL
+
+You probably want to start `kubectl proxy` first, combined with `kubevg.bat` when using multiple versions (see above).
+
 ## Changes
 
 - [2019-06-23] v1.15 removed canal, updated addon deployments, improved kubevg

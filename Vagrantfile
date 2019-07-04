@@ -27,9 +27,9 @@ require 'securerandom'
 #
 # TODO:
 # - check if vb natproxy fix is still needed
-# - fix return from sleep vbox by removing/readding NAT network:
-#		VBoxManage controlvm "1234_host0_12345" nic1 null
-#		VBoxManage controlvm "1234_host0_12345" nic1 nat
+# 		fix return from sleep vbox by removing/readding NAT network:
+#			VBoxManage controlvm "1234_host0_12345" nic1 null
+#			VBoxManage controlvm "1234_host0_12345" nic1 nat
 # - add metallb/nginx as default lb/ingress and add hello-world example
 # - finish multi master support
 
