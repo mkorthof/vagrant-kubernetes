@@ -11,7 +11,16 @@ Vagrantfile to setup a Kubernetes cluster consisting of 1 master and 2 nodes as 
 - Addons/plugins: network weave|flannel|calico|canal, dashboard, metrics, nginx
 - Support multiple concurrent versions using kubevb.bat
 
-Also see [Changes](#Changes) and [Todo](#Todo) below and comments inside [Vagrantfile](Vagrantfile)
+### Documentation:
+
+Added documentation for the updated version can be found below:
+
+- [Multiple versions](#Multiple-versions)
+- [Dashboard](#Dashboard)
+- [Changes](#Changes)
+- [Todo](#Todo)
+
+And comments inside [Vagrantfile](Vagrantfile)
 
 ---
 
@@ -86,6 +95,8 @@ C:\vagrant-kubernetes\kubectl --kubeconfig admin.conf proxy
 Leaving the above command running, access the [Kubernetes Admin Console](http://localhost:8001/ui) in your web browser. This requires setting `$K8S_DASHBOARD = 1` in Vagrantfile first, before running `vagrant up`.
 
 You should now have a fully working Kubernetes cluster running on your local machine, on to which you can deploy containers using either the admin console or the kubectl command line tool.
+
+---
 
 ## Multiple versions
 
