@@ -15,10 +15,10 @@ Vagrantfile to setup a Kubernetes cluster consisting of 1 master and 2 nodes as 
 
 Added documentation for the updated version can be found below:
 
-- [Multiple versions](#Multiple-versions)
-- [Dashboard](#Dashboard)
-- [Changes](#Changes)
-- [Todo](#Todo)
+- [Multiple versions](README.md#Multiple-versions)
+- [Dashboard](README.md#Dashboard)
+- [Changes](README.md#Changes)
+- [TODO](README.md#TODO)
 
 And comments inside [Vagrantfile](Vagrantfile)
 
@@ -81,7 +81,7 @@ The cluster consists of Kubernetes 3 hosts:
   Once the box image has been downloaded, numerous additional packages will be downloaded and installed automatically, including those required for Docker and Kubernetes. This process will take approximately 15 minutes to complete.
 
 3. Get the configuration for our new Kubernetes cluster so we can access it directly from our local machine
-  * Mac: `$ export KUBECONFIG="$KUBECONFIG:`pwd`/admin.conf"`
+  * Mac: `$ export KUBECONFIG="$KUBECONFIG:$(pwd)/admin.conf"`
   * Windows: `SET "KUBECONFIG=%KUBECONFIG%;%CD%\admin.conf"`
 
 4. Optionally, proxy the admin console to your local Mac/Windows PC
