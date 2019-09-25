@@ -15,9 +15,10 @@ require 'securerandom'
 #		  - for multiple concurrent k8s versions use 'kubevg.bat'
 #
 # - Original source: https://github.com/grahamdaley/vagrant-kubernetes (v1.6?)
-# - Updated version: https://github.com/mkorthof/vagrant-kubernetes (v1.15)
+# - Updated version: https://github.com/mkorthof/vagrant-kubernetes (v1.16)
 #
 # Changes:
+#   [2019-09-21] v1.16 updates, added hello-world example, improved kubevg.bat
 #   [2019-06-23] v1.15 removed canal, updated addon deployments, improved kubevg.bat
 #   [2019-05-23] added support for multiple concurrent k8s versions, multimaster prep, ingress
 #   [2019-04-20] v1.14 updates, ubuntu/bionic box, runtime options
@@ -27,11 +28,12 @@ require 'securerandom'
 #
 # TODO:
 # - check if vb natproxy fix is still needed
-# 		fix return from sleep vbox by removing/readding NAT network:
-#			VBoxManage controlvm "1234_host0_12345" nic1 null
-#			VBoxManage controlvm "1234_host0_12345" nic1 nat
-# - add metallb/nginx as default lb/ingress and add hello-world example
+# 	fix return from sleep vbox by removing/readding NAT network:
+#		VBoxManage controlvm "1234_host0_12345" nic1 null
+#		VBoxManage controlvm "1234_host0_12345" nic1 nat
+# - add metallb/nginx as default lb/ingress
 # - finish multi master support
+#
 
 ### CONFIGURATON: ###
 # Usually leaving these options default should be fine
@@ -48,15 +50,16 @@ $VB_DNSPROXY_NAT = 0						# [0/1] enable nat dns proxy in vbox
 
 # Kubernetes options
 $K8S_OS_DIST = "xenial"						# kubernetes os dist (apt packages)
-$K8S_VERSION = "1.15.0-00"					# kubernetes version (apt packages)
+$K8S_VERSION = "1.16.0-00"					# kubernetes version (apt packages)
 $K8S_RUNTIME = "docker-ce"					# [docker.io|docker-ce] container runntime
 $DOCKER_VERSION = "5:18.09.6~3-0~ubuntu-bionic"
 $K8S_NETWORKING = "calico"					# [weave|flannel|calico] network
 $K8S_NETWORKING_RBAC = 0					# [0/1] rbac authorization
 $K8S_DASHBOARD = 1							# [0/1] dashboard
-$K8S_METRICS_SERVER = 0						# [0/1] metics-server
+$K8S_METRICS_SERVER = 0						# [0/1] metrics-server
 $K8S_NGINX = 0								# [0/1] nginx ingress
 $K8S_METALLB = 0							# [0/1] metallb loadbalacner
+$K8S_HELLOWORLD = 0							# [0/1] hello-world example, needs ingress/lb
 $K8S_BUSYBOX = 1							# [0/1] busybox example pod in default namespace
 
 # Enable this fix if you're having issues with metrics-server
@@ -231,8 +234,8 @@ elif [ #{$K8S_NETWORKING} = "weave" ]; then
 	kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
 fi
 if [ #{$K8S_NGINX} = "1" ]; then
-	# kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/mandatory.yaml
-	# kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/provider/baremetal/service-nodeport.yaml#
+	# kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/mandatory.yaml
+	# kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/baremetal/service-nodeport.yaml#
 	##https://raw.githubusercontent.com/kubernetes/contrib/master/ingress/controllers/nginx/examples/default-backend.yaml
 
 	kubectl apply -f https://raw.githubusercontent.com/nginxinc/kubernetes-ingress/master/deployments/common/ns-and-sa.yaml
@@ -247,8 +250,8 @@ if [ #{$K8S_NGINX} = "1" ]; then
 fi
 if [ #{$K8S_METALLB} = "1" ]; then
 	# Example: http://192.168.33.1[0-9]:3[0-9][0-9][0-9][0-9]/{testpath}
-	# https://kubernetes.io/docs/concepts/services-networking/ingress/
-	kubectl apply -f https://raw.githubusercontent.com/google/metallb/v0.7.3/manifests/metallb.yaml
+	# https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource
+	kubectl apply -f https://raw.githubusercontent.com/google/metallb/v0.8.1/manifests/metallb.yaml
 	kubectl apply -f - <<-'EOF_04'
 		apiVersion: v1
 		kind: ConfigMap
@@ -263,7 +266,7 @@ if [ #{$K8S_METALLB} = "1" ]; then
 		      addresses:
 		      - 192.168.33.11-192.168.33.12
 		---
-		apiVersion: extensions/v1beta1
+		apiVersion: networking.k8s.io/v1beta1
 		kind: Ingress
 		metadata:
 		  name: test-ingress-1
@@ -278,7 +281,7 @@ if [ #{$K8S_METALLB} = "1" ]; then
 		          serviceName: test
 		          servicePort: 80
 		---
-		apiVersion: extensions/v1beta1
+		apiVersion: networking.k8s.io/v1beta1
 		kind: Ingress
 		metadata:
 		  name: test-ingress-2
@@ -289,7 +292,8 @@ if [ #{$K8S_METALLB} = "1" ]; then
 EOF_04
 fi
 if [ #{$K8S_DASHBOARD} = "1" ]; then
-	kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/master/aio/deploy/recommended/kubernetes-dashboard.yaml
+	kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml
+	##kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta4/aio/deploy/recommended.yaml
 	kubectl apply -f - <<-'EOF_05'
 		apiVersion: v1
 		kind: ServiceAccount
@@ -297,7 +301,7 @@ if [ #{$K8S_DASHBOARD} = "1" ]; then
 		  name: admin-user
 		  namespace: kube-system
 		---
-		apiVersion: rbac.authorization.k8s.io/v1beta1
+		apiVersion: rbac.authorization.k8s.io/v1
 		kind: ClusterRoleBinding
 		metadata:
 		  name: admin-user
@@ -331,9 +335,17 @@ if [ #{$K8S_METRICS_SERVER} = "1" ]; then
 	done
 fi
 if [ #{$K8S_BUSYBOX} = "1" ]; then
-	echo "Creating busybox pod example..."
+	echo "Creating 'busybox' example pod ..."
 	# Added 30 sec sleep because 'default' namespace might not exist yet
 	{ sleep 30 && kubectl create -f https://k8s.io/examples/admin/dns/busybox.yaml; } &
+fi
+# https://cloud.google.com/kubernetes-engine/docs/quickstart
+if [ #{$K8S_HELLOWORLD} = "1" ]; then
+	echo "Creating 'hello-world' example pod ..."
+	if [ #{$K8S_NGINX} = "0" ]; then echo "WARN: Ingress is missing"; fi
+	if [ #{$K8S_METALLB} = "0" ]; then echo "WARN: LoadBalancer is missing"; fi
+	kubectl create deployment hello-server --image=gcr.io/google-samples/hello-app:1.0 && \
+	kubectl expose deployment hello-server --type Ingress --port 80 --target-port 8080
 fi
 [ -s #{$K8S_ADMIN_CONF} ] && { cp #{$K8S_ADMIN_CONF} /vagrant || echo "ERROR: #{$K8S_ADMIN_CONF} is missing"; }
 SCRIPT
@@ -365,7 +377,7 @@ end
 def show_dashboard()
 	if ($K8S_DASHBOARD == 1) then
 		if File.exist?($K8S_DASH_TOKEN) then
-			url = "http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/"
+			url = "http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/"
 			if not File.exist?($K8S_DASH_LINK) then
 				html = "<head><meta http-equiv=\"refresh\" content=\"0; url=#{url}\"><a href=#{url}\">Goto Kubernetes Dashboard</a></head><body>"
 				File.write($K8S_DASH_LINK, html)
@@ -373,7 +385,7 @@ def show_dashboard()
 				puts "[vg-k8s]   1) run 'kubectl proxy --kubeconfig admin.conf' locally"
 				puts "[vg-k8s]   2) open \"" + $K8S_DASH_LINK + "\" or goto:"
 				puts "[vg-k8s]   " + url
-				puts "[vg-k8s]   3) to login get token from \"" + $K8S_DASH_TOKEN + "\""
+				puts "[vg-k8s]   3) to login, get token from \"" + $K8S_DASH_TOKEN + "\""
 			else
 				puts "[vg-k8s] Kubernetes Dashboard: " + url
 			end
@@ -428,11 +440,10 @@ Vagrant.configure("2") do |config|
 			host.vm.hostname = "host#{i}"
 			if (i < $MASTER_NODES) then
 				host.vm.provision "shell", inline: master_setup_script(cluster_token)
+				show_dashboard()
 			else
 				host.vm.provision "shell", inline: node_setup_script(i, cluster_token)
 			end
 		end
 	end
-	show_dashboard()
-
 end

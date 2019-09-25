@@ -132,6 +132,7 @@ You probably want to start `kubectl proxy` first, combined with `kubevg.bat` whe
 
 ## Changes
 
+- [2019-09-21] v1.16 updates, added hello-world example, improved kubevg.bat
 - [2019-06-23] v1.15 removed canal, updated addon deployments, improved kubevg
 - [2019-05-23] added support for multiple concurrent k8s versions, multimaster prep, ingress
 - [2019-04-20] v1.14 updates, ubuntu/bionic box, runtime options
@@ -145,5 +146,5 @@ You probably want to start `kubectl proxy` first, combined with `kubevg.bat` whe
 - fix return from sleep vbox by removing/readding NAT network:
   - `VBoxManage controlvm "1234_host0_12345" nic1 null`
   - `VBoxManage controlvm "1234_host0_12345" nic1 nat`
-- add metallb/nginx as default lb/ingress and add hello-world example
+- add metallb/nginx as default lb/ingress
 - finish multi master support
