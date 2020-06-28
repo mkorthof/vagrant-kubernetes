@@ -16,6 +16,7 @@ dashboard-token.txt
 *.log
 *.html
 *.bak
+*.bak.gz
 *.orig
 *.yml
 *.yaml
@@ -25,7 +26,9 @@ dashboard-token.txt
 *.txt
 *.iso
 id_*
+todo
 TODO
+TODO.md
 
 # Don't ignore tools dir
 ##!tools/
