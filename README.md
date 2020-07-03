@@ -106,7 +106,7 @@ C:\dev\vagrant-kubernetes>kubevg --list
 
 ```
 
-Runing Vagrant:
+Running Vagrant:
 
 ``` batch
 C:\dev\vagrant-kubernetes>kubevg.bat 1.18.5 vagrant status
