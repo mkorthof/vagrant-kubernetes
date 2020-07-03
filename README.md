@@ -6,23 +6,183 @@ Vagrantfile to setup a Kubernetes cluster consisting of 1 master and 2 nodes as 
 
 ## Updated version
 
-- Forked from original: <https://github.com/grahamdaley/vagrant-kubernetes>
+Forked from original: <https://github.com/grahamdaley/vagrant-kubernetes>
+
 - Supports Kubernetes: **1.18+** (includes option to change version)
-- Addons/plugins: network weave|flannel|calico|canal, dashboard, metrics, nginx, metallb
-- Supports multiple versions using 'kubevg.bat'
+- Addons: network weave|flannel|calico|canal, dashboard, metrics, nginx, metallb
+- Supports multiple simultanious k8s versions using 'kubevg.bat'
 
 ## Documentation
 
-Added for the updated version:
+If you're new to Kubernetes and/or Vagrant or need detailed instructions reading the included [Original readme](README.md#Original-readme) by 'grahamdaley' is a good place to start.
 
+These topics are specific for this updated version:
+
+- [Usage](README.md#Usage)
 - [Multiple versions](README.md#Multiple-versions)
 - [Dashboard](README.md#Dashboard)
 - [CHANGES.md](CHANGES.md)
 - Comments inside [Vagrantfile](Vagrantfile)
 
+## Usage
+
+You need Virtualbox and Vagrant (and optionally kubectl).
+
+On Windows you can use [Chocolatey](https://chocolatey.org): `choco install virtualbox vagrant kubernetes-cli`
+
+The Vagrantfile includes options for Addons and test Pods, these can be left as-is however.
+
+Run `vagrant up` to automatically provision a complete and ready to use k8s cluster. On Windows you can also use [kubevg.bat](README.md#Multiple-versions).
+
+All created host VM's will have names prefixed by **kubevg-** for example 'kubevg-host0'.
+
+In case of network issues in Kubernetes:
+
+- have a look at 'Network IP ranges (RFC 1918)' in the Vagrantfile
+- try changing to the default prefixes for pods and pool
+- if you have network overlap try using an other block
+- If you're still having issues test if changing network addons helps (e.g. Flannel instead of Calico)
+
+## Multiple versions
+
+Multiple k8s versions can co-exist by using 'kubevg.bat' for Windows. All versions will use the same Vagrantfile.
+
+This can be useful if you want to test deployments in different k8s versions for example.
+
+See 'Kubevg' and 'Example' below for details .
+
+_You could even try running concurrent clusters. This would require `$IP_RANDOM = 1` to be set in the Vagrantfile so it uses different ip ranges for the VM's (untested). The ip prefix will be written to `.ip_prefix` in each k8s version subdir._
+
+### Kubevg
+
+`C:\dev\vagrant-kubernetes>kubevg.bat -h`
+
+``` batch
+
+-------------------------------------------------------------------------------
+[kubevg]                 (Kube)rnetes (V)a(g)rant wrapper
+-------------------------------------------------------------------------------
+
+  This wrapper will change dir to "k8s-version" subdir first before running
+  running Vagrant or kubectl, thus allowing multiple Kubernetes version
+  to co-exist (using the same Vagrantfile).
+
+SYNTAX:  ".\kubevg.bat [--help|--version|--list|--clip|--proxy] <k8s-version>
+         ".\kubevg.bat [--create|--recreate|--reinstall] <k8s-version>"
+
+OPTIONS: --help show these help instructions
+         --list show available Kubernetes version subdirs
+         --version show available Kubernetes Ubuntu package versions
+         --create <k8s-version> create new version subdir, runs "vagrant up"
+         --recreate <k8s-version> re-create using "vagrant destroy" then "up"
+         --reinstall <k8s-version> remove version subdir first, then recreate
+         --clip <k8s-version> copy K8s Dashboard token to clipboard
+         --proxy <k8s-version> start proxy and K8s Dashboard
+
+WRAPPER SYNTAX: ".\kubevg.bat <k8s-version> [vagrant|kubectl <command>]"
+     > VAGRANT: ".\kubevg.bat <k8s-version> vagrant <help|commmand>"
+     > KUBECTL: ".\kubevg.bat <k8s-version> kubectl <help|commmand>"
+
+EXAMPLES: ".\kubevg.bat --create 1.13.0"
+          ".\kubevg.bat 1.13.0 vagrant ssh kubevg-host0"
+          ".\kubevg.bat 1.13.0 kubectl get nodes"
+
+```
+
+### Example
+
+First run `kubevg --create 1.18.5` then after it's done you'll see the new version listed:
+
+``` batch
+C:\dev\vagrant-kubernetes>kubevg --list
+
+[kubevg] Found 3 Kubernetes versions/subdirs:
+
+         1.18.5 1.18.3 1.16.3
+
+  Cluster/API info: "kubevg <k8s-version> kubectl cluster-info"
+  Token: "kubevg --clip <k8s-version>"
+  Dashboard: Open "<k8s-version>\Dashboard.html" in web browser
+
+```
+
+Runing Vagrant:
+
+``` batch
+C:\dev\vagrant-kubernetes>kubevg.bat 1.18.5 vagrant status
+Current machine states:
+
+kubevg-host0              running (virtualbox)
+kubevg-host1              running (virtualbox)
+kubevg-host2              running (virtualbox)
+
+This environment represents multiple VMs. The VMs are all listed
+above with their current state. For more information about a specific
+VM, run `vagrant status NAME`.
+```
+
+If you want to ssh to a host VM use: `kubevg.bat 1.18.5 vagrant ssh kubevg-host2`
+
+To run kubectl.exe:
+
+``` batch
+C:\dev\vagrant-kubernetes>kubevg 1.18.5 kubectl get pods --all-namespaces
+
+[kubevg] Currently using: 1.18.5
+
+NAMESPACE              NAME                                         READY   STATUS    RESTARTS   AGE
+default                busybox                                      1/1     Running   8          1h
+default                hello-server-57684579f-bvz87                 1/1     Running   0          1h
+kube-system            calico-kube-controllers-68dddfc554-w8zhd     1/1     Running   0          1h
+kube-system            calico-node-5k8pp                            1/1     Running   0          1h
+kube-system            calico-node-84nxs                            1/1     Running   0          1h
+kube-system            calico-node-h8txs                            1/1     Running   0          1h
+kube-system            calicoctl                                    1/1     Running   0          1h
+kube-system            coredns-66bff467f8-7lgdc                     1/1     Running   0          1h
+kube-system            coredns-66bff467f8-nbrjx                     1/1     Running   0          1h
+kube-system            etcd-host0                                   1/1     Running   0          1h
+kube-system            kube-apiserver-host0                         1/1     Running   0          1h
+kube-system            kube-controller-manager-host0                1/1     Running   0          1h
+kube-system            kube-proxy-45jw4                             1/1     Running   0          1h
+kube-system            kube-proxy-hrmzf                             1/1     Running   0          1h
+kube-system            kube-proxy-tf2tx                             1/1     Running   0          1h
+kube-system            kube-scheduler-host0                         1/1     Running   0          1h
+kubernetes-dashboard   dashboard-metrics-scraper-6b4884c9d5-hjx6h   1/1     Running   0          1h
+kubernetes-dashboard   kubernetes-dashboard-7bfbb48676-85ftd        1/1     Running   0          1h
+```
+
+## Dashboard
+
+Enable the Kubernetes Dashboard in the Vagrantfile by setting `$K8S_DASHBOARD = 1`.
+
+Two files will be created:
+
+- "dashboard-token.txt" containing a bearer token to login
+- "Dashboard.html" which auto redirects to the Dashboard URL
+
+To open the Dashboard quick and easy:
+
+ _Replace 1.2.3 by k8s version_
+
+On Windows run `kubevg.bat --proxy 1.2.3` to start kubectl, copy token to clipboard automatically and open the Dashboard in your default browser.
+
+This can also be done by running `kubevg.bat 1.2.3 kubectl proxy` and copying the token using `kubevg.bat --clip 1.2.3`.
+
+Lastly you can also start `kubectl proxy` yourself and copy the token from 'dashboard-token.txt'.
+
+Now open 'Dashboard.html' and paste the token.
+
+![kubevg](kubevg.png "kubevg - dashboard")
+
+## Changes
+
+See [CHANGES.md](CHANGES.md)
+
 ---
 
-### Original README
+### Original readme
+
+README from <https://github.com/grahamdaley/vagrant-kubernetes>
 
 #### Kubernetes
 
@@ -54,8 +214,6 @@ The cluster consists of Kubernetes 3 hosts:
 
 - __[kubectl](https://kubernetes.io/docs/user-guide/prereqs/)__
   - Install this on your local Mac/PC, to allow you to control your cluster and access the Kubernetes dashboard through a web browser.
-
-On Windows you can use [Chocolatey](https://chocolatey.org): `choco install virtualbox vagrant kubernetes-cli`
 
 ## Configuring and Running the Virtual Machines
 
@@ -97,75 +255,3 @@ Leaving the above command running, access the [Kubernetes Admin Console](http://
 You should now have a fully working Kubernetes cluster running on your local machine, on to which you can deploy containers using either the admin console or the kubectl command line tool.
 
 ---
-
-Note that all VM's will have names prefixed by ***kubevg-*** for example: 'kubevg-host0'.
-
-In case of network issues in Kubernetes:
-
-- have a look at 'Network IP ranges (RFC 1918)' in the Vagrantfile
-- try changing to the default prefixes for pods and pool
-- if you have network overlap try using an other block
-- If you're still having issues test if changing network addons helps (e.g. Flannel instead of Calico)
-
-## Multiple versions
-
-Multiple k8s versions can co-exist by using 'kubevg.bat'. All versions will use the same Vagrantfile.
-
-This can be useful if you want to test deployments in different k8s versions for example.
-
-You could even try running concurrent clusters. This would require `$IP_RANDOM = 1` to be set in the Vagrantfile so it uses different ip ranges for the VM's (untested). The ip prefix will be written to `.ip_prefix` in each k8s version subdir.
-
-Run `kubevg.bat -h` for details:
-
-``` batch
-
--------------------------------------------------------------------------------
-[kubevg]                 (Kube)rnetes (V)a(g)rant wrapper
--------------------------------------------------------------------------------
-
-  This wrapper will change dir to "k8s-version" subdir first before running
-  running Vagrant or kubectl, thus allowing multiple Kubernetes version
-  to co-exist (using the same Vagrantfile).
-
-SYNTAX:  ".\kubevg.bat [--help|--version|--list|--clip|--proxy] <k8s-version>
-         ".\kubevg.bat [--create|--recreate|--reinstall] <k8s-version>"
-
-OPTIONS: --help show these help instructions
-         --list show available Kubernetes version subdirs
-         --version show available Kubernetes Ubuntu package versions
-         --create <k8s-version> create new version subdir, runs "vagrant up"
-         --recreate <k8s-version> re-create using "vagrant destroy" then "up"
-         --reinstall <k8s-version> remove version subdir first, then recreate
-         --clip <k8s-version> copy K8s Dashboard token to clipboard
-         --proxy <k8s-version> start proxy and K8s Dashboard
-
-WRAPPER SYNTAX: ".\kubevg.bat <k8s-version> [vagrant|kubectl <command>]"
-     > VAGRANT: ".\kubevg.bat <k8s-version> vagrant <help|commmand>"
-     > KUBECTL: ".\kubevg.bat <k8s-version> kubectl <help|commmand>"
-
-EXAMPLES: ".\kubevg.bat --create 1.13.0"
-          ".\kubevg.bat 1.13.0 vagrant ssh kubevg-host0"
-          ".\kubevg.bat 1.13.0 kubectl get nodes"
-
-```
-
-## Dashboard
-
-Enable the Kubernetes Dashboard in the Vagrantfile by setting `$K8S_DASHBOARD = 1`.
-
-Two files will be created:
-
-- "dashboard-token.txt" containing a bearer token to login
-- "Dashboard.html" which auto redirects to the Dashboard URL
-
-Run `kubevg.bat --proxy 1.2.3` to start kubectl, copy token to clipboard automatically, and open the Dashboard in your default browser.
-
-Or, manually start `kubectl.exe proxy`
-
-- When using multiple versions instead use: `kubevg.bat 1.2.3 kubectl proxy`
-- Copy the token to clipboard using `kubevg.bat --clip 1.2.3` or from 'dashboard-token.txt'
-- Open 'Dashboard.html' in your browser
-
-## Changes
-
-See [CHANGES.md](CHANGES.md)
