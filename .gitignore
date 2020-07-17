@@ -41,6 +41,7 @@ TODO.md
 !Vagrantfile
 !kubevg.bat
 !kubevg.png
+!CHANGES.md
 
 ## removed, added to Vagrantfile:
 #!k8s-minimal-ingress-resource.yaml
