@@ -64,7 +64,7 @@ _You could even try running concurrent clusters. This would require `$IP_RANDOM 
 -------------------------------------------------------------------------------
 
   This wrapper will change dir to "k8s-version" subdir first before running
-  running Vagrant or kubectl, thus allowing multiple Kubernetes version
+  running Vagrant or kubectl, thus allowing multiple Kubernetes versions
   to co-exist (using the same Vagrantfile).
 
 SYNTAX:  ".\kubevg.bat [--help|--version|--list|--clip|--proxy] <k8s-version>
