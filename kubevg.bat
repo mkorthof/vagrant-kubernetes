@@ -343,7 +343,7 @@ REM      )
   echo -------------------------------------------------------------------------------
   echo:
   echo   This wrapper will change dir to "k8s-version" subdir first before running
-  echo   running Vagrant or kubectl, thus allowing multiple Kubernetes version
+  echo   running Vagrant or kubectl, thus allowing multiple Kubernetes versions
   echo   to co-exist (using the same Vagrantfile).
   echo:
   echo SYNTAX:  ".\%SCRIPT% [--help|--version|--list|--clip|--proxy] <k8s-version>
